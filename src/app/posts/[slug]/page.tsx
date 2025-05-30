@@ -1,4 +1,5 @@
-import { getPostBySlug, stripHtml } from '@/lib/posts';
+
+import { getPostBySlug, stripHtml, getAllPosts } from '@/lib/posts';
 import type { Post } from '@/types';
 import Image from 'next/image';
 import { notFound } from 'next/navigation';
@@ -16,11 +17,8 @@ interface PostPageProps {
 
 // This function is needed for Next.js to know which slugs are available at build time
 export async function generateStaticParams() {
-  // In a real app, fetch all post slugs from your data source
-  // For now, we'll use a placeholder or skip if not using mockPosts directly here
-  // const posts = getAllPosts(); // Assuming getAllPosts is available here or fetched
-  // return posts.map(post => ({ slug: post.slug }));
-  return []; // Keep empty for now, or populate from lib/posts if needed for SSG
+  const posts = getAllPosts();
+  return posts.map(post => ({ slug: post.slug }));
 }
 
 
