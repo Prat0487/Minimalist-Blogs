@@ -12,7 +12,8 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
-import { postFormSchema, type PostFormSchemaType, createNewPostAction } from './actions';
+import { postFormSchema, type PostFormSchemaType } from './form-schema';
+import { createNewPostAction } from './actions';
 
 const CreatePostPage: FC = () => {
   const { toast } = useToast();
@@ -21,7 +22,7 @@ const CreatePostPage: FC = () => {
     resolver: zodResolver(postFormSchema),
     defaultValues: {
       title: '',
-      content: '<p>Start writing your amazing blog post here! You can use HTML for formatting.</p>\n<h2 class="text-xl font-headline mt-4 mb-2">A Subheading</h2>\n<p>More content...</p>\n<p><img src="https://placehold.co/600x400.png" alt="Placeholder image" class="my-4 rounded-md shadow-md" data-ai-hint="blog image" /></p>',
+      content: '<p>Start writing your amazing blog post here! You can use HTML for formatting.</p>\\n<h2 class="text-xl font-headline mt-4 mb-2">A Subheading</h2>\\n<p>More content...</p>\\n<p><img src="https://placehold.co/600x400.png" alt="Placeholder image" class="my-4 rounded-md shadow-md" data-ai-hint="blog image" /></p>',
       excerpt: '',
       featuredImage: 'https://placehold.co/800x450.png',
       author: '',
