@@ -1,3 +1,4 @@
+
 import type { Post } from '@/types';
 
 const mockPosts: Post[] = [
@@ -71,7 +72,7 @@ const mockPosts: Post[] = [
 ];
 
 export const getAllPosts = (): Post[] => {
-  return mockPosts.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  return [...mockPosts].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 };
 
 export const getPostBySlug = (slug: string): Post | undefined => {
@@ -86,4 +87,37 @@ export const stripHtml = (html: string): string => {
   }
   // Basic fallback for server-side if DOMParser is not available or for simpler cases
   return html.replace(/<[^>]+>/g, ' ').replace(/\s\s+/g, ' ').trim();
+};
+
+const generateSlug = (title: string): string => {
+  let slug = title
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, '-') // Replace spaces with -
+    .replace(/[^\w-]+/g, '') // Remove all non-word chars
+    .replace(/--+/g, '-') // Replace multiple - with single -
+    .replace(/^-+/, '') // Trim - from start of text
+    .replace(/-+$/, ''); // Trim - from end of text
+  
+  // Ensure uniqueness
+  let counter = 1;
+  let originalSlug = slug;
+  while (mockPosts.some(post => post.slug === slug)) {
+    slug = `${originalSlug}-${counter}`;
+    counter++;
+  }
+  return slug;
+};
+
+export type NewPostData = Omit<Post, 'slug' | 'date'>;
+
+export const addPost = (postData: NewPostData): Post => {
+  const newSlug = generateSlug(postData.title);
+  const newPost: Post = {
+    ...postData,
+    slug: newSlug,
+    date: new Date().toISOString(),
+  };
+  mockPosts.unshift(newPost); // Add to the beginning of the array for chronological order
+  return newPost;
 };
