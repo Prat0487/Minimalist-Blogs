@@ -6,10 +6,20 @@ import Logo from '@/components/common/Logo';
 import DarkModeToggle from '@/components/common/DarkModeToggle';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Search, PlusCircle } from 'lucide-react';
+import { Search, PlusCircle, LogIn, LogOut, User, Loader2 } from 'lucide-react'; // Added Loader2
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import Link from 'next/link';
+import { useAuth } from '@/context/AuthContext';
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const Header: FC = () => {
   const router = useRouter();
@@ -17,14 +27,13 @@ const Header: FC = () => {
   const pathname = usePathname();
   const initialQuery = currentSearchParams.get('q') || '';
   const [searchQuery, setSearchQuery] = useState(initialQuery);
+  const { user, signOut, loading } = useAuth();
 
   useEffect(() => {
-    // Sync searchQuery state if the URL query param changes externally,
-    // but only if we are on the homepage where search is active.
     if (pathname === '/') {
       setSearchQuery(currentSearchParams.get('q') || '');
     } else {
-      setSearchQuery(''); // Clear search query if not on homepage
+      setSearchQuery('');
     }
   }, [currentSearchParams, pathname]);
 
@@ -38,8 +47,17 @@ const Header: FC = () => {
     if (trimmedQuery) {
       router.push(`/?q=${encodeURIComponent(trimmedQuery)}`);
     } else {
-      router.push('/'); // Navigate to homepage without query if search is cleared
+      router.push('/');
     }
+  };
+
+  const getInitials = (name: string | null | undefined) => {
+    if (!name) return 'U';
+    const names = name.split(' ');
+    if (names.length > 1 && names[0] && names[1]) {
+      return `${names[0][0]}${names[1][0]}`.toUpperCase();
+    }
+    return name[0]?.toUpperCase() || 'U';
   };
 
   return (
@@ -67,6 +85,44 @@ const Header: FC = () => {
             </Link>
           </Button>
           <DarkModeToggle />
+          {loading ? (
+            <Button variant="outline" size="icon" disabled>
+              <Loader2 className="h-4 w-4 animate-spin" />
+            </Button>
+          ) : user ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="relative h-9 w-9 rounded-full">
+                  <Avatar className="h-9 w-9">
+                    <AvatarImage src={user.photoURL || ''} alt={user.displayName || 'User'} />
+                    <AvatarFallback>{getInitials(user.displayName)}</AvatarFallback>
+                  </Avatar>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="w-56" align="end" forceMount>
+                <DropdownMenuLabel className="font-normal">
+                  <div className="flex flex-col space-y-1">
+                    <p className="text-sm font-medium leading-none">{user.displayName || "User"}</p>
+                    <p className="text-xs leading-none text-muted-foreground">
+                      {user.email}
+                    </p>
+                  </div>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={signOut}>
+                  <LogOut className="mr-2 h-4 w-4" />
+                  <span>Log out</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <Button variant="outline" size="sm" asChild>
+              <Link href="/auth">
+                <LogIn className="mr-0 sm:mr-2 h-4 w-4" />
+                 <span className="hidden sm:inline">Login</span>
+              </Link>
+            </Button>
+          )}
         </div>
       </div>
       {pathname === '/' && (
