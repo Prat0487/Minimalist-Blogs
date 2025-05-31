@@ -10,20 +10,23 @@ import { AlertCircle, Info } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
+import { useSearchParams } from 'next/navigation';
 
-interface HomePageProps {
-  searchParams?: {
-    q?: string;
-  };
-}
+// Removed searchParams from props
+interface HomePageProps {}
 
-export default function HomePage({ searchParams }: HomePageProps) {
+export default function HomePage({}: HomePageProps) {
   const { user } = useAuth();
   const [userInterests, setUserInterests] = useState<string[]>([]);
   const [isLoadingInterests, setIsLoadingInterests] = useState(true);
+  
+  const currentSearchParams = useSearchParams();
+  const queryFromUrl = currentSearchParams.get('q');
 
   const allPostsRaw: Post[] = useMemo(() => getAllPosts(), []);
-  const query = searchParams?.q?.toLowerCase() || '';
+  // Use queryFromUrl from the hook
+  const query = queryFromUrl?.toLowerCase() || '';
+
 
   useEffect(() => {
     if (user) {
@@ -74,7 +77,7 @@ export default function HomePage({ searchParams }: HomePageProps) {
   }, [allPostsRaw, query, userInterests, user, isLoadingInterests]);
 
   const getHomePageTitle = () => {
-    if (query) return `Search Results for "${searchParams?.q}"`;
+    if (query) return `Search Results for "${queryFromUrl}"`; // Use queryFromUrl for display
     if (user && userInterests.length > 0) return 'Your Recommended Articles';
     return 'Latest Articles';
   };
@@ -113,7 +116,8 @@ export default function HomePage({ searchParams }: HomePageProps) {
             {isLoadingInterests ? (
               <p>Loading articles...</p>
             ) : query ? (
-              <p>No articles found matching &quot;{searchParams?.q}&quot;{user && userInterests.length > 0 ? " in your interests" : ""}. Try a different search term.</p>
+              // Use queryFromUrl for display
+              <p>No articles found matching &quot;{queryFromUrl}&quot;{user && userInterests.length > 0 ? " in your interests" : ""}. Try a different search term.</p>
             ) : (user && userInterests.length > 0) ? (
                <div className="flex flex-col items-center space-y-4">
                 <AlertCircle className="h-12 w-12 text-primary" />
@@ -132,4 +136,3 @@ export default function HomePage({ searchParams }: HomePageProps) {
     </div>
   );
 }
-
