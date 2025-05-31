@@ -6,7 +6,7 @@ import Logo from '@/components/common/Logo';
 import DarkModeToggle from '@/components/common/DarkModeToggle';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Search, PlusCircle, LogIn, LogOut, User, Loader2 } from 'lucide-react';
+import { Search, PlusCircle, LogIn, LogOut, User, Loader2, Settings } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import Link from 'next/link';
@@ -27,24 +27,21 @@ const Header: FC = () => {
   const pathname = usePathname();
   const initialQuery = currentSearchParams.get('q') || '';
   const [searchQuery, setSearchQuery] = useState(initialQuery);
-  const { user, signOutUser, loading } = useAuth(); // Changed signOut to signOutUser
+  const { user, signOutUser, loading } = useAuth();
 
   useEffect(() => {
-    // Only update searchQuery from URL if on homepage and the query actually changes in URL
     if (pathname === '/') {
         const newQueryFromUrl = currentSearchParams.get('q') || '';
         if (newQueryFromUrl !== searchQuery) {
             setSearchQuery(newQueryFromUrl);
         }
     } else {
-        // Clear search query if not on homepage, to prevent stale search terms
-        // when navigating away and back using browser buttons
         if (searchQuery !== '') {
             setSearchQuery('');
         }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentSearchParams, pathname]); // searchQuery removed from deps to avoid loop
+  }, [currentSearchParams, pathname]);
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchQuery(e.target.value);
@@ -54,14 +51,12 @@ const Header: FC = () => {
     e.preventDefault();
     const trimmedQuery = searchQuery.trim();
     if (pathname !== '/') {
-        // If search is submitted from a non-homepage, navigate to homepage with query
         if (trimmedQuery) {
             router.push(`/?q=${encodeURIComponent(trimmedQuery)}`);
         } else {
             router.push('/');
         }
     } else {
-        // If already on homepage, just update query params
         const params = new URLSearchParams(currentSearchParams.toString());
         if (trimmedQuery) {
             params.set('q', trimmedQuery);
@@ -130,7 +125,14 @@ const Header: FC = () => {
                   </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={signOutUser}> {/* Changed signOut to signOutUser */}
+                <DropdownMenuItem asChild>
+                  <Link href="/profile/interests">
+                    <Settings className="mr-2 h-4 w-4" />
+                    <span>My Interests</span>
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={signOutUser}>
                   <LogOut className="mr-2 h-4 w-4" />
                   <span>Log out</span>
                 </DropdownMenuItem>
