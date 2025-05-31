@@ -6,7 +6,7 @@ import Logo from '@/components/common/Logo';
 import DarkModeToggle from '@/components/common/DarkModeToggle';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Search, PlusCircle, LogIn, LogOut, User, Loader2 } from 'lucide-react'; // Added Loader2
+import { Search, PlusCircle, LogIn, LogOut, User, Loader2 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import Link from 'next/link';
@@ -27,15 +27,24 @@ const Header: FC = () => {
   const pathname = usePathname();
   const initialQuery = currentSearchParams.get('q') || '';
   const [searchQuery, setSearchQuery] = useState(initialQuery);
-  const { user, signOut, loading } = useAuth();
+  const { user, signOutUser, loading } = useAuth(); // Changed signOut to signOutUser
 
   useEffect(() => {
+    // Only update searchQuery from URL if on homepage and the query actually changes in URL
     if (pathname === '/') {
-      setSearchQuery(currentSearchParams.get('q') || '');
+        const newQueryFromUrl = currentSearchParams.get('q') || '';
+        if (newQueryFromUrl !== searchQuery) {
+            setSearchQuery(newQueryFromUrl);
+        }
     } else {
-      setSearchQuery('');
+        // Clear search query if not on homepage, to prevent stale search terms
+        // when navigating away and back using browser buttons
+        if (searchQuery !== '') {
+            setSearchQuery('');
+        }
     }
-  }, [currentSearchParams, pathname]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentSearchParams, pathname]); // searchQuery removed from deps to avoid loop
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchQuery(e.target.value);
@@ -44,13 +53,25 @@ const Header: FC = () => {
   const handleSearchSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const trimmedQuery = searchQuery.trim();
-    if (trimmedQuery) {
-      router.push(`/?q=${encodeURIComponent(trimmedQuery)}`);
+    if (pathname !== '/') {
+        // If search is submitted from a non-homepage, navigate to homepage with query
+        if (trimmedQuery) {
+            router.push(`/?q=${encodeURIComponent(trimmedQuery)}`);
+        } else {
+            router.push('/');
+        }
     } else {
-      router.push('/');
+        // If already on homepage, just update query params
+        const params = new URLSearchParams(currentSearchParams.toString());
+        if (trimmedQuery) {
+            params.set('q', trimmedQuery);
+        } else {
+            params.delete('q');
+        }
+        router.push(`/?${params.toString()}`);
     }
   };
-
+  
   const getInitials = (name: string | null | undefined) => {
     if (!name) return 'U';
     const names = name.split(' ');
@@ -109,7 +130,7 @@ const Header: FC = () => {
                   </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={signOut}>
+                <DropdownMenuItem onClick={signOutUser}> {/* Changed signOut to signOutUser */}
                   <LogOut className="mr-2 h-4 w-4" />
                   <span>Log out</span>
                 </DropdownMenuItem>
