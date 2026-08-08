@@ -17,9 +17,10 @@ interface PostArticleProps {
   post: Post;
   relatedPosts: Post[];
   siteUrl?: string;
+  aiSummariesEnabled?: boolean;
 }
 
-export default function PostArticle({ post, relatedPosts, siteUrl }: PostArticleProps) {
+export default function PostArticle({ post, relatedPosts, siteUrl, aiSummariesEnabled = false }: PostArticleProps) {
   const resolvedSiteUrl = siteUrl || process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:9002';
   const postUrl = `${resolvedSiteUrl}/posts/${post.slug}`;
   const textContentForSummary = stripHtml(post.content);
@@ -91,7 +92,7 @@ export default function PostArticle({ post, relatedPosts, siteUrl }: PostArticle
           dangerouslySetInnerHTML={{ __html: post.content }}
         />
 
-        <AiSummary blogPostContent={textContentForSummary} />
+        <AiSummary blogPostContent={textContentForSummary} enabled={aiSummariesEnabled} />
 
         <div className="mt-12 pt-8 border-t border-border">
           <SocialShareButtons url={postUrl} title={post.title} />
