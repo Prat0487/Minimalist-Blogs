@@ -6,7 +6,7 @@ import Logo from '@/components/common/Logo';
 import DarkModeToggle from '@/components/common/DarkModeToggle';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Search, PlusCircle, LogIn, LogOut, User, Loader2, Settings } from 'lucide-react';
+import { Search, PlusCircle, LogIn, LogOut, Loader2, Settings } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import Link from 'next/link';
@@ -50,20 +50,10 @@ const Header: FC = () => {
   const handleSearchSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const trimmedQuery = searchQuery.trim();
-    if (pathname !== '/') {
-        if (trimmedQuery) {
-            router.push(`/?q=${encodeURIComponent(trimmedQuery)}`);
-        } else {
-            router.push('/');
-        }
+    if (trimmedQuery) {
+      router.push(`/?q=${encodeURIComponent(trimmedQuery)}`);
     } else {
-        const params = new URLSearchParams(currentSearchParams.toString());
-        if (trimmedQuery) {
-            params.set('q', trimmedQuery);
-        } else {
-            params.delete('q');
-        }
-        router.push(`/?${params.toString()}`);
+      router.push('/');
     }
   };
   
@@ -81,8 +71,7 @@ const Header: FC = () => {
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between gap-4">
         <Logo />
         <div className="flex items-center space-x-2 sm:space-x-4 flex-grow justify-end">
-          {pathname === '/' && (
-            <form onSubmit={handleSearchSubmit} className="relative w-full max-w-xs hidden sm:block">
+          <form onSubmit={handleSearchSubmit} className="relative w-full max-w-xs hidden sm:block">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 type="search"
@@ -92,8 +81,7 @@ const Header: FC = () => {
                 onChange={handleSearchChange}
                 aria-label="Search posts"
               />
-            </form>
-          )}
+          </form>
            <Button variant="outline" size="sm" asChild>
             <Link href="/posts/new">
               <PlusCircle className="mr-0 sm:mr-2 h-4 w-4" />
@@ -148,9 +136,8 @@ const Header: FC = () => {
           )}
         </div>
       </div>
-      {pathname === '/' && (
-         <div className="container mx-auto px-4 sm:px-6 lg:px-8 mt-2 sm:hidden">
-            <form onSubmit={handleSearchSubmit} className="relative w-full">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 mt-2 sm:hidden">
+        <form onSubmit={handleSearchSubmit} className="relative w-full">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 type="search"
@@ -160,9 +147,8 @@ const Header: FC = () => {
                 onChange={handleSearchChange}
                 aria-label="Search posts"
               />
-            </form>
-          </div>
-      )}
+        </form>
+      </div>
     </header>
   );
 };

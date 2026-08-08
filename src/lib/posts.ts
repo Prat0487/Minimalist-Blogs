@@ -1,5 +1,6 @@
 
 import type { Post } from '@/types';
+import { getCustomPostBySlug, getCustomPosts } from '@/lib/post-storage';
 
 const mockPosts: Post[] = [
   {
@@ -71,12 +72,43 @@ const mockPosts: Post[] = [
   },
 ];
 
+function sortPosts(posts: Post[]): Post[] {
+  return [...posts].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+}
+
+function mergePosts(posts: Post[]): Post[] {
+  const bySlug = new Map<string, Post>();
+  for (const post of posts) {
+    bySlug.set(post.slug, post);
+  }
+  return sortPosts(Array.from(bySlug.values()));
+}
+
 export const getAllPosts = (): Post[] => {
-  return [...mockPosts].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  return mergePosts([...mockPosts, ...getCustomPosts()]);
 };
 
 export const getPostBySlug = (slug: string): Post | undefined => {
-  return mockPosts.find(post => post.slug === slug);
+  return mockPosts.find((post) => post.slug === slug) ?? getCustomPostBySlug(slug);
+};
+
+export const getCategories = (): string[] => {
+  const categories = new Set(getAllPosts().map((post) => post.category));
+  return Array.from(categories).sort();
+};
+
+export const getRelatedPosts = (post: Post, limit = 3): Post[] => {
+  return getAllPosts()
+    .filter((candidate) => candidate.slug !== post.slug)
+    .map((candidate) => {
+      const sharedTags = candidate.tags.filter((tag) => post.tags.includes(tag)).length;
+      const sameCategory = candidate.category === post.category ? 2 : 0;
+      return { candidate, score: sharedTags + sameCategory };
+    })
+    .filter(({ score }) => score > 0)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, limit)
+    .map(({ candidate }) => candidate);
 };
 
 // Helper function to strip HTML for AI summary
@@ -85,7 +117,6 @@ export const stripHtml = (html: string): string => {
     const doc = new DOMParser().parseFromString(html, 'text/html');
     return doc.body.textContent || "";
   }
-  // Basic fallback for server-side if DOMParser is not available or for simpler cases
   return html.replace(/<[^>]+>/g, ' ').replace(/\s\s+/g, ' ').trim();
 };
 
@@ -93,16 +124,15 @@ const generateSlug = (title: string): string => {
   let slug = title
     .toLowerCase()
     .trim()
-    .replace(/\s+/g, '-') // Replace spaces with -
-    .replace(/[^\w-]+/g, '') // Remove all non-word chars
-    .replace(/--+/g, '-') // Replace multiple - with single -
-    .replace(/^-+/, '') // Trim - from start of text
-    .replace(/-+$/, ''); // Trim - from end of text
-  
-  // Ensure uniqueness
+    .replace(/\s+/g, '-')
+    .replace(/[^\w-]+/g, '')
+    .replace(/--+/g, '-')
+    .replace(/^-+/, '')
+    .replace(/-+$/, '');
+
   let counter = 1;
-  let originalSlug = slug;
-  while (mockPosts.some(post => post.slug === slug)) {
+  const originalSlug = slug;
+  while (getPostBySlug(slug)) {
     slug = `${originalSlug}-${counter}`;
     counter++;
   }
@@ -118,6 +148,6 @@ export const addPost = (postData: NewPostData): Post => {
     slug: newSlug,
     date: new Date().toISOString(),
   };
-  mockPosts.unshift(newPost); // Add to the beginning of the array for chronological order
+  mockPosts.unshift(newPost);
   return newPost;
 };

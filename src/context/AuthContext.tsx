@@ -1,9 +1,8 @@
-
 "use client";
 
 import type { User } from 'firebase/auth';
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
-import { auth, googleProvider } from '@/lib/firebase';
+import { getFirebaseAuth, googleProvider, isFirebaseConfigured } from '@/lib/firebase';
 import { signInWithPopup, signOut as firebaseSignOut, onAuthStateChanged, type AuthError } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
@@ -11,8 +10,9 @@ import { useToast } from '@/hooks/use-toast';
 interface AuthContextType {
   user: User | null;
   loading: boolean;
+  isConfigured: boolean;
   signInWithGoogle: () => Promise<void>;
-  signOutUser: () => Promise<void>; // Renamed from signOut
+  signOutUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -24,6 +24,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const { toast } = useToast();
 
   useEffect(() => {
+    const auth = getFirebaseAuth();
+    if (!auth) {
+      setLoading(false);
+      return;
+    }
+
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
       setLoading(false);
@@ -32,11 +38,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const signInWithGoogle = async () => {
+    const auth = getFirebaseAuth();
+    if (!auth) {
+      toast({
+        title: "Authentication Unavailable",
+        description: "Firebase is not configured. Add your Firebase credentials to .env.local to enable sign-in.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setLoading(true);
     try {
       await signInWithPopup(auth, googleProvider);
-      // User is signed in. onAuthStateChanged will handle UI updates.
-      // AuthPage.tsx's useEffect will handle redirection if the user lands there while already signed in or after successful sign-in.
     } catch (error) {
       const authError = error as AuthError;
       console.error("Google Sign-In Error Code:", authError.code);
@@ -52,10 +66,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       } else if (authError.code === 'auth/popup-blocked') {
         description = 'Sign-in popup was blocked by your browser. Please disable your popup blocker and try again.';
       }
-      
+
       toast({
         title: "Sign-In Failed",
-        description: description,
+        description,
         variant: "destructive",
       });
     } finally {
@@ -63,13 +77,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const signOutUser = async () => { // Renamed from signOut
+  const signOutUser = async () => {
+    const auth = getFirebaseAuth();
+    if (!auth) {
+      return;
+    }
+
     setLoading(true);
     try {
       await firebaseSignOut(auth);
-      // onAuthStateChanged will set user to null.
-      // Header and other components will react to user being null.
-      // router.push('/'); // Optional: redirect to home, or let components decide
+      router.push('/');
     } catch (error) {
       const authError = error as AuthError;
       console.error("Error signing out:", authError.code, authError.message);
@@ -84,7 +101,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, signInWithGoogle, signOutUser }}>
+    <AuthContext.Provider value={{ user, loading, isConfigured: isFirebaseConfigured, signInWithGoogle, signOutUser }}>
       {children}
     </AuthContext.Provider>
   );
@@ -97,4 +114,3 @@ export const useAuth = (): AuthContextType => {
   }
   return context;
 };
-
