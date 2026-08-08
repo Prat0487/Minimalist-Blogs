@@ -1,5 +1,4 @@
-
-"use client";
+'use client';
 
 import type { FC } from 'react';
 import { useForm, type SubmitHandler } from 'react-hook-form';
@@ -7,22 +6,27 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { postFormSchema, type PostFormSchemaType } from './form-schema';
 import { createNewPostAction } from './actions';
+import { useAuth } from '@/context/AuthContext';
+import { useEffect } from 'react';
+import { estimateReadTime } from '@/lib/read-time';
+import { saveCustomPost } from '@/lib/post-storage';
 
 const CreatePostPage: FC = () => {
   const { toast } = useToast();
   const router = useRouter();
+  const { user } = useAuth();
   const form = useForm<PostFormSchemaType>({
     resolver: zodResolver(postFormSchema),
     defaultValues: {
       title: '',
-      content: '<p>Start writing your amazing blog post here! You can use HTML for formatting.</p>\\n<h2 class="text-xl font-headline mt-4 mb-2">A Subheading</h2>\\n<p>More content...</p>\\n<p><img src="https://placehold.co/600x400.png" alt="Placeholder image" class="my-4 rounded-md shadow-md" data-ai-hint="blog image" /></p>',
+      content:
+        '<p>Start writing your amazing blog post here! You can use HTML for formatting.</p>\n<h2 class="text-xl font-headline mt-4 mb-2">A Subheading</h2>\n<p>More content...</p>\n<p><img src="https://placehold.co/600x400.png" alt="Placeholder image" class="my-4 rounded-md shadow-md" data-ai-hint="blog image" /></p>',
       excerpt: '',
       featuredImage: 'https://placehold.co/800x450.png',
       author: '',
@@ -32,26 +36,43 @@ const CreatePostPage: FC = () => {
     },
   });
 
+  useEffect(() => {
+    if (user?.displayName && !form.getValues('author')) {
+      form.setValue('author', user.displayName);
+    }
+  }, [user, form]);
+
+  const contentValue = form.watch('content');
+
+  useEffect(() => {
+    if (contentValue) {
+      form.setValue('readTime', estimateReadTime(contentValue), { shouldValidate: false });
+    }
+  }, [contentValue, form]);
+
   const onSubmit: SubmitHandler<PostFormSchemaType> = async (data) => {
     const result = await createNewPostAction(data);
 
-    if (result.success && result.slug) {
+    if (result.success && result.slug && result.post) {
+      saveCustomPost(result.post);
       toast({
-        title: "Post Created!",
-        description: result.message || "Your new blog post has been successfully created.",
+        title: 'Post Created!',
+        description: result.message || 'Your new blog post has been successfully created.',
       });
       router.push(`/posts/${result.slug}`);
     } else {
       toast({
-        variant: "destructive",
-        title: "Error Creating Post",
-        description: result.message || "Failed to create the post. Please check the form for errors.",
+        variant: 'destructive',
+        title: 'Error Creating Post',
+        description: result.message || 'Failed to create the post. Please check the form for errors.',
       });
       if (result.errors) {
-        // Optionally set form errors if react-hook-form supports it directly from server action response
         Object.entries(result.errors).forEach(([fieldName, errors]) => {
           if (errors && errors.length > 0) {
-            form.setError(fieldName as keyof PostFormSchemaType, { type: 'server', message: errors.join(', ') });
+            form.setError(fieldName as keyof PostFormSchemaType, {
+              type: 'server',
+              message: errors.join(', '),
+            });
           }
         });
       }
@@ -89,9 +110,16 @@ const CreatePostPage: FC = () => {
                   <FormItem>
                     <FormLabel>Content (HTML)</FormLabel>
                     <FormControl>
-                      <Textarea placeholder="Enter post content in HTML format" {...field} rows={10} className="font-code text-sm" />
+                      <Textarea
+                        placeholder="Enter post content in HTML format"
+                        {...field}
+                        rows={12}
+                        className="font-mono text-sm"
+                      />
                     </FormControl>
-                    <FormDescription>You can use HTML tags for formatting.</FormDescription>
+                    <FormDescription>
+                      Use HTML tags for formatting. Read time is estimated automatically from your content.
+                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -118,9 +146,11 @@ const CreatePostPage: FC = () => {
                   <FormItem>
                     <FormLabel>Featured Image URL</FormLabel>
                     <FormControl>
-                      <Input placeholder="https://example.com/image.png or https://placehold.co/800x450.png" {...field} />
+                      <Input
+                        placeholder="https://example.com/image.png or https://placehold.co/800x450.png"
+                        {...field}
+                      />
                     </FormControl>
-                     <FormDescription>Add a data-ai-hint attribute to your img tag in content if using placeholders for better AI image suggestions.</FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -176,8 +206,9 @@ const CreatePostPage: FC = () => {
                   <FormItem>
                     <FormLabel>Read Time</FormLabel>
                     <FormControl>
-                      <Input placeholder="e.g., 5 min read" {...field} />
+                      <Input placeholder="e.g., 5 min read" {...field} readOnly />
                     </FormControl>
+                    <FormDescription>Automatically calculated from your content.</FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}

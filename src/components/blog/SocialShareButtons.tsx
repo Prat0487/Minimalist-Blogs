@@ -1,9 +1,10 @@
 "use client";
 
-import { Share2, Twitter, Facebook, Linkedin } from 'lucide-react';
+import { Share2, Twitter, Facebook, Linkedin, Link2 } from 'lucide-react';
 import type { FC } from 'react';
 import { Button } from '@/components/ui/button';
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from '@/hooks/use-toast';
+import { useEffect, useState } from 'react';
 
 interface SocialShareButtonsProps {
   url: string;
@@ -12,8 +13,13 @@ interface SocialShareButtonsProps {
 
 const SocialShareButtons: FC<SocialShareButtonsProps> = ({ url, title }) => {
   const { toast } = useToast();
+  const [canNativeShare, setCanNativeShare] = useState(false);
   const encodedUrl = encodeURIComponent(url);
   const encodedTitle = encodeURIComponent(title);
+
+  useEffect(() => {
+    setCanNativeShare(typeof navigator !== 'undefined' && typeof navigator.share === 'function');
+  }, []);
 
   const shareActions = [
     {
@@ -33,21 +39,46 @@ const SocialShareButtons: FC<SocialShareButtonsProps> = ({ url, title }) => {
     },
   ];
 
+  const handleCopyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(url);
+      toast({ title: 'Link copied', description: 'Article URL copied to your clipboard.' });
+    } catch {
+      toast({
+        title: 'Copy failed',
+        description: 'Could not copy the link. Please copy it manually from the address bar.',
+        variant: 'destructive',
+      });
+    }
+  };
+
   const handleNativeShare = async () => {
-    if (navigator.share) {
-      try {
-        await navigator.share({ title, url });
-        toast({ title: "Shared successfully!" });
-      } catch (error) {
-        toast({ title: "Sharing failed", description: "Could not share using native share.", variant: "destructive" });
+    if (!navigator.share) {
+      toast({
+        title: 'Native share not supported',
+        description: 'Your browser does not support native sharing.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    try {
+      await navigator.share({ title, url });
+      toast({ title: 'Shared successfully!' });
+    } catch (error) {
+      if (error instanceof Error && error.name === 'AbortError') {
+        return;
       }
-    } else {
-       toast({ title: "Native share not supported", description: "Your browser does not support native sharing.", variant: "destructive" });
+      toast({
+        title: 'Sharing failed',
+        description: 'Could not share using native share.',
+        variant: 'destructive',
+      });
     }
   };
 
   return (
-    <div className="flex items-center space-x-2">
+    <div className="flex flex-wrap items-center gap-2">
       <span className="text-sm font-medium text-muted-foreground">Share:</span>
       {shareActions.map((action) => (
         <Button
@@ -62,9 +93,12 @@ const SocialShareButtons: FC<SocialShareButtonsProps> = ({ url, title }) => {
           </a>
         </Button>
       ))}
-      {typeof navigator !== 'undefined' && navigator.share && (
-         <Button variant="outline" size="icon" onClick={handleNativeShare} aria-label="Share">
-            <Share2 className="h-4 w-4" />
+      <Button variant="outline" size="icon" onClick={handleCopyLink} aria-label="Copy link">
+        <Link2 className="h-4 w-4" />
+      </Button>
+      {canNativeShare && (
+        <Button variant="outline" size="icon" onClick={handleNativeShare} aria-label="Share">
+          <Share2 className="h-4 w-4" />
         </Button>
       )}
     </div>

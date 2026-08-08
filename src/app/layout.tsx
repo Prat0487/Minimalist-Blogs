@@ -2,7 +2,7 @@
 import type { Metadata } from 'next';
 import './globals.css';
 import { ThemeProvider } from '@/components/theme-provider';
-import Header from '@/components/layout/Header';
+import HeaderWithSuspense from '@/components/layout/HeaderWithSuspense';
 import Footer from '@/components/layout/Footer';
 import { Toaster } from "@/components/ui/toaster";
 import { AuthProvider } from '@/context/AuthContext';
@@ -27,8 +27,8 @@ export default function RootLayout({
       </head>
       <body className="font-body antialiased" suppressHydrationWarning>
         <AuthProvider>
-          <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-            <Header />
+          <ThemeProvider defaultTheme="system">
+            <HeaderWithSuspense />
             <main className="container mx-auto py-8 px-4 sm:px-6 lg:px-8">
               {children}
             </main>

@@ -21,9 +21,13 @@ export async function createNewPostAction(data: PostFormSchemaType) {
     revalidatePath('/');
     revalidatePath('/posts');
     revalidatePath(`/posts/${newPost.slug}`);
-    
-    // Return a success status and the new slug
-    return { success: true, slug: newPost.slug, message: 'Post created successfully!' };
+
+    return {
+      success: true,
+      slug: newPost.slug,
+      post: newPost,
+      message: 'Post created successfully!',
+    };
 
   } catch (error) {
     if (error instanceof z.ZodError) {
