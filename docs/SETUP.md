@@ -97,6 +97,25 @@ Built-in sample posts are bundled with the app. User-created posts are saved to 
 
 Allow popups for `localhost` in your browser settings, or try a different browser.
 
+### 500 Internal Server Error in cloud preview (`cvm.dev`)
+
+This is usually **not** your app code. Common causes:
+
+1. **Stale dev server or corrupted cache** — run:
+   ```bash
+   npm run dev:clean
+   ```
+2. **Port conflict** — only one dev server should run on port 9002. Stop other terminals running `npm run dev`.
+3. **Turbopack instability in cloud** — use the stable dev server (default). Only use `npm run dev:turbo` locally if you want faster HMR.
+4. **Cloud proxy warnings** — messages like `MaxListenersExceededWarning`, `contentscript.js`, or `ObjectMultiplex - orphaned data` come from the cloud preview infrastructure, not this app. They can be ignored.
+
+**Health check:** visit `/api/health` — if it returns `{"status":"ok"}`, the server is running and the 500 is likely a stale proxy session. Hard-refresh the preview or restart the environment.
+
+**Stable alternative:** for a production-like preview:
+```bash
+npm run preview
+```
+
 ## Production deployment
 
 This project includes an `apphosting.yaml` for Firebase App Hosting. Set all environment variables in your hosting provider's dashboard before deploying.
