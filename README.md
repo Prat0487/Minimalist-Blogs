@@ -85,6 +85,7 @@ src/
 ## Documentation
 
 - [Setup Guide](docs/SETUP.md) — Environment variables, Firebase, and Google AI configuration
+- [Netlify Deployment](docs/NETLIFY.md) — Deploy to Netlify with Firebase env vars
 - [Blueprint](docs/blueprint.md) — Original design guidelines
 
 ## Notes
