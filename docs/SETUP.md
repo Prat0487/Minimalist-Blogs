@@ -77,6 +77,15 @@ npm run dev
 
 Visit [http://localhost:9002](http://localhost:9002).
 
+**Important:** Next.js only reads `.env.local` when the dev server **starts**. If you create or edit `.env.local`, you must restart:
+
+```bash
+# Stop the server with Ctrl+C, then:
+npm run dev
+```
+
+If the auth page says "Restart required", your credentials are saved but the server was started before they existed.
+
 ## Troubleshooting
 
 ### Build fails with Firebase auth error
