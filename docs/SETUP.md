@@ -43,10 +43,12 @@ The app still works without Firebase. You can browse articles, search, filter by
 AI summaries use Google Gemini via Genkit.
 
 1. Get an API key from [Google AI Studio](https://aistudio.google.com/app/apikey).
-2. Add it to `.env.local`:
+2. Add it to `.env.local` (any one of these names works):
 
 ```env
 GOOGLE_GENAI_API_KEY=your-google-ai-api-key
+# or GEMINI_API_KEY=...
+# or GOOGLE_API_KEY=...
 ```
 
 3. Start the Genkit dev server (optional, for debugging flows):

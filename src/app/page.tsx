@@ -1,5 +1,3 @@
-"use client";
-
 import { Suspense } from 'react';
 import HomePageContent from '@/components/home/HomePageContent';
 import PostGridSkeleton from '@/components/blog/PostGridSkeleton';
