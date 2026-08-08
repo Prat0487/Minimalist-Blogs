@@ -11,6 +11,7 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
+import { isAiConfigured } from '@/lib/ai-config';
 
 const SummarizeBlogPostInputSchema = z.object({
   blogPostContent: z.string().describe('The content of the blog post to summarize.'),
@@ -23,6 +24,9 @@ const SummarizeBlogPostOutputSchema = z.object({
 export type SummarizeBlogPostOutput = z.infer<typeof SummarizeBlogPostOutputSchema>;
 
 export async function summarizeBlogPost(input: SummarizeBlogPostInput): Promise<SummarizeBlogPostOutput> {
+  if (!isAiConfigured()) {
+    throw new Error('AI summaries are not configured on this server.');
+  }
   return summarizeBlogPostFlow(input);
 }
 

@@ -1,4 +1,5 @@
 import { getPostBySlug, getAllPosts, getRelatedPosts } from '@/lib/posts';
+import { isAiConfigured } from '@/lib/ai-config';
 import type { Metadata } from 'next';
 import ClientPostLoader from '@/components/blog/ClientPostLoader';
 import PostArticle from '@/components/blog/PostArticle';
@@ -48,5 +49,12 @@ export default async function PostPage({ params }: PostPageProps) {
 
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:9002';
 
-  return <PostArticle post={post} relatedPosts={getRelatedPosts(post)} siteUrl={siteUrl} />;
+  return (
+    <PostArticle
+      post={post}
+      relatedPosts={getRelatedPosts(post)}
+      siteUrl={siteUrl}
+      aiSummariesEnabled={isAiConfigured()}
+    />
+  );
 }

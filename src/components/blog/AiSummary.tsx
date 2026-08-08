@@ -9,12 +9,17 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 interface AiSummaryProps {
   blogPostContent: string;
+  enabled?: boolean;
 }
 
-const AiSummary: React.FC<AiSummaryProps> = ({ blogPostContent }) => {
+const AiSummary: React.FC<AiSummaryProps> = ({ blogPostContent, enabled = false }) => {
   const [summary, setSummary] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  if (!enabled) {
+    return null;
+  }
 
   const handleGenerateSummary = async () => {
     if (!blogPostContent) {
@@ -31,7 +36,7 @@ const AiSummary: React.FC<AiSummaryProps> = ({ blogPostContent }) => {
       setSummary(result.summary);
     } catch (err) {
       console.error('Failed to generate summary:', err);
-      setError('Sorry, we could not generate a summary right now. Check that your Google AI API key is configured.');
+      setError('AI summaries are not available right now. The feature requires a Google AI API key on the server.');
     } finally {
       setIsLoading(false);
     }
@@ -77,7 +82,7 @@ const AiSummary: React.FC<AiSummaryProps> = ({ blogPostContent }) => {
         )}
         {error && (
           <Alert variant="destructive">
-            <AlertTitle>Error</AlertTitle>
+            <AlertTitle>Unavailable</AlertTitle>
             <AlertDescription>{error}</AlertDescription>
           </Alert>
         )}
