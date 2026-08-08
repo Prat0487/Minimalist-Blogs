@@ -2,7 +2,7 @@
 
 import type { User } from 'firebase/auth';
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
-import { getFirebaseAuth, googleProvider, isFirebaseConfigured } from '@/lib/firebase';
+import { getFirebaseAuth, googleProvider, initFirebaseAuth } from '@/lib/firebase';
 import { signInWithPopup, signOut as firebaseSignOut, onAuthStateChanged, type AuthError } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
@@ -20,29 +20,39 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isConfigured, setIsConfigured] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
 
   useEffect(() => {
-    const auth = getFirebaseAuth();
-    if (!auth) {
-      setLoading(false);
-      return;
-    }
+    let unsubscribe: (() => void) | undefined;
 
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser);
-      setLoading(false);
+    initFirebaseAuth().then((firebaseAuth) => {
+      if (!firebaseAuth) {
+        setIsConfigured(false);
+        setLoading(false);
+        return;
+      }
+
+      setIsConfigured(true);
+      unsubscribe = onAuthStateChanged(firebaseAuth, (currentUser) => {
+        setUser(currentUser);
+        setLoading(false);
+      });
     });
-    return () => unsubscribe();
+
+    return () => {
+      unsubscribe?.();
+    };
   }, []);
 
   const signInWithGoogle = async () => {
-    const auth = getFirebaseAuth();
-    if (!auth) {
+    const firebaseAuth = (await initFirebaseAuth()) ?? getFirebaseAuth();
+    if (!firebaseAuth) {
       toast({
         title: "Authentication Unavailable",
-        description: "Firebase is not configured. Add your Firebase credentials to .env.local to enable sign-in.",
+        description:
+          "Firebase is not configured. Add your Firebase credentials to .env.local in the project root, then restart the dev server.",
         variant: "destructive",
       });
       return;
@@ -50,7 +60,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     setLoading(true);
     try {
-      await signInWithPopup(auth, googleProvider);
+      await signInWithPopup(firebaseAuth, googleProvider);
     } catch (error) {
       const authError = error as AuthError;
       console.error("Google Sign-In Error Code:", authError.code);
@@ -78,14 +88,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const signOutUser = async () => {
-    const auth = getFirebaseAuth();
-    if (!auth) {
+    const firebaseAuth = getFirebaseAuth();
+    if (!firebaseAuth) {
       return;
     }
 
     setLoading(true);
     try {
-      await firebaseSignOut(auth);
+      await firebaseSignOut(firebaseAuth);
       router.push('/');
     } catch (error) {
       const authError = error as AuthError;
@@ -101,7 +111,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, isConfigured: isFirebaseConfigured, signInWithGoogle, signOutUser }}>
+    <AuthContext.Provider value={{ user, loading, isConfigured, signInWithGoogle, signOutUser }}>
       {children}
     </AuthContext.Provider>
   );

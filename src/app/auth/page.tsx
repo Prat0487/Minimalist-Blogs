@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { AlertCircle, Loader2 } from "lucide-react";
 
 const GoogleIcon = () => (
@@ -18,33 +18,15 @@ const GoogleIcon = () => (
   </svg>
 );
 
-type FirebaseServerStatus = {
-  configured: boolean;
-  checks: {
-    apiKey: boolean;
-    authDomain: boolean;
-    projectId: boolean;
-    appId: boolean;
-  };
-};
-
 export default function AuthPage() {
   const { user, signInWithGoogle, loading, isConfigured } = useAuth();
   const router = useRouter();
-  const [serverStatus, setServerStatus] = useState<FirebaseServerStatus | null>(null);
 
   useEffect(() => {
     if (user && !loading) {
       router.push("/");
     }
   }, [user, loading, router]);
-
-  useEffect(() => {
-    fetch("/api/firebase-status")
-      .then((res) => res.json())
-      .then((data: FirebaseServerStatus) => setServerStatus(data))
-      .catch(() => setServerStatus(null));
-  }, []);
 
   if (loading || user) {
     return (
@@ -54,9 +36,6 @@ export default function AuthPage() {
     );
   }
 
-  const needsRestart = serverStatus?.configured && !isConfigured;
-  const missingEnv = !serverStatus?.configured && !isConfigured;
-
   return (
     <div className="flex justify-center items-center min-h-[calc(100vh-200px)] py-12">
       <Card className="w-full max-w-md shadow-xl">
@@ -65,32 +44,19 @@ export default function AuthPage() {
           <CardDescription>Sign in to personalize your feed, save articles, and manage interests.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {needsRestart && (
-            <Alert>
-              <AlertCircle className="h-4 w-4" />
-              <AlertTitle>Restart required</AlertTitle>
-              <AlertDescription>
-                Firebase credentials were found in <code className="text-xs">.env.local</code>, but the dev server
-                needs a restart to load them. Stop the server (Ctrl+C) and run <code className="text-xs">npm run dev</code> again.
-              </AlertDescription>
-            </Alert>
-          )}
-          {missingEnv && (
+          {!isConfigured && (
             <Alert variant="destructive">
               <AlertCircle className="h-4 w-4" />
               <AlertTitle>Firebase Not Configured</AlertTitle>
-              <AlertDescription>
-                Add your Firebase credentials to <code className="text-xs">.env.local</code> in the project root, then
-                restart the dev server. See <span className="font-medium">docs/SETUP.md</span> for setup instructions.
-                {serverStatus && (
-                  <span className="block mt-2 text-xs">
-                    Missing:{" "}
-                    {Object.entries(serverStatus.checks)
-                      .filter(([, ok]) => !ok)
-                      .map(([key]) => key)
-                      .join(", ") || "none detected"}
-                  </span>
-                )}
+              <AlertDescription className="space-y-2">
+                <p>
+                  Make sure <code className="text-xs">.env.local</code> is in the project root (same folder as{" "}
+                  <code className="text-xs">package.json</code>), then restart the dev server.
+                </p>
+                <p className="text-xs">
+                  Check: open <code className="text-xs">/api/firebase-config</code> in your browser — it should show{" "}
+                  <code className="text-xs">{`"configured": true`}</code>.
+                </p>
               </AlertDescription>
             </Alert>
           )}
