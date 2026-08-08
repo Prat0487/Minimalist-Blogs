@@ -50,14 +50,22 @@ export async function GET() {
     );
   }
 
+  const isPlaceholderKey =
+    config.apiKey === 'test-api-key' ||
+    config.apiKey === 'your-api-key' ||
+    config.apiKey.length < 20;
+
   return NextResponse.json({
-    configured: true,
-    config,
+    configured: !isPlaceholderKey,
+    config: isPlaceholderKey ? null : config,
     checks: {
-      apiKey: true,
+      apiKey: Boolean(config.apiKey) && !isPlaceholderKey,
       authDomain: true,
       projectId: true,
       appId: true,
     },
+    hint: isPlaceholderKey
+      ? 'API key is a placeholder. Update NEXT_PUBLIC_FIREBASE_API_KEY in .env.local with your real key from Firebase Console, then restart npm run dev. If you see this on a cloud preview URL, run the app locally at http://localhost:9002 instead.'
+      : undefined,
   });
 }
