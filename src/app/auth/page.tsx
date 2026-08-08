@@ -48,9 +48,15 @@ export default function AuthPage() {
             <Alert variant="destructive">
               <AlertCircle className="h-4 w-4" />
               <AlertTitle>Firebase Not Configured</AlertTitle>
-              <AlertDescription>
-                Add your Firebase credentials to <code className="text-xs">.env.local</code> to enable sign-in.
-                See <span className="font-medium">docs/SETUP.md</span> for setup instructions.
+              <AlertDescription className="space-y-2">
+                <p>
+                  Make sure <code className="text-xs">.env.local</code> is in the project root (same folder as{" "}
+                  <code className="text-xs">package.json</code>), then restart the dev server.
+                </p>
+                <p className="text-xs">
+                  Check: open <code className="text-xs">/api/firebase-config</code> in your browser — it should show{" "}
+                  <code className="text-xs">{`"configured": true`}</code>.
+                </p>
               </AlertDescription>
             </Alert>
           )}

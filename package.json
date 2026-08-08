@@ -3,13 +3,13 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --hostname 0.0.0.0 -p ${PORT:-9002}",
-    "dev:turbo": "next dev --turbopack --hostname 0.0.0.0 -p ${PORT:-9002}",
-    "dev:clean": "rm -rf .next && npm run dev",
+    "dev": "node scripts/run-next.mjs dev",
+    "dev:turbo": "node scripts/run-next.mjs dev --turbo",
+    "dev:clean": "node -e \"require('fs').rmSync('.next',{recursive:true,force:true})\" && npm run dev",
     "genkit:dev": "genkit start -- tsx src/ai/dev.ts",
     "genkit:watch": "genkit start -- tsx --watch src/ai/dev.ts",
     "build": "next build",
-    "start": "next start --hostname 0.0.0.0 -p ${PORT:-9002}",
+    "start": "node scripts/run-next.mjs start",
     "preview": "npm run build && npm run start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit"
