@@ -19,14 +19,25 @@ export const isFirebaseConfigured = Boolean(
 
 let app: FirebaseApp | undefined;
 let auth: Auth | undefined;
+let initError: Error | null = null;
 
 function getFirebaseApp(): FirebaseApp | null {
   if (!isFirebaseConfigured) {
     return null;
   }
 
+  if (initError) {
+    return null;
+  }
+
   if (!app) {
-    app = getApps().length ? getApps()[0]! : initializeApp(firebaseConfig);
+    try {
+      app = getApps().length ? getApps()[0]! : initializeApp(firebaseConfig);
+    } catch (error) {
+      initError = error instanceof Error ? error : new Error('Failed to initialize Firebase');
+      console.error('Firebase initialization failed:', initError);
+      return null;
+    }
   }
 
   return app;
@@ -39,7 +50,12 @@ export function getFirebaseAuth(): Auth | null {
   }
 
   if (!auth) {
-    auth = getAuth(firebaseApp);
+    try {
+      auth = getAuth(firebaseApp);
+    } catch (error) {
+      console.error('Firebase auth initialization failed:', error);
+      return null;
+    }
   }
 
   return auth;

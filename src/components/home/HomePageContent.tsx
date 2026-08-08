@@ -5,6 +5,8 @@ import BlogPostCard from '@/components/blog/BlogPostCard';
 import PostGridSkeleton from '@/components/blog/PostGridSkeleton';
 import { getAllPosts, stripHtml } from '@/lib/posts';
 import { getBookmarkedSlugs } from '@/lib/bookmarks';
+import { filterPostsByInterests } from '@/lib/interests';
+import { POSTS_UPDATED_EVENT } from '@/lib/post-storage';
 import type { Post } from '@/types';
 import { useAuth } from '@/context/AuthContext';
 import { AlertCircle, Bookmark, Info } from 'lucide-react';
@@ -19,7 +21,7 @@ import { Label } from '@/components/ui/label';
 type FeedMode = 'all' | 'recommended' | 'bookmarks';
 
 export default function HomePageContent() {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [userInterests, setUserInterests] = useState<string[]>([]);
   const [isLoadingInterests, setIsLoadingInterests] = useState(true);
   const [allPosts, setAllPosts] = useState<Post[]>([]);
@@ -32,13 +34,21 @@ export default function HomePageContent() {
   const query = queryFromUrl?.toLowerCase() || '';
 
   useEffect(() => {
-    setAllPosts(getAllPosts());
-    const handleStorage = () => setAllPosts(getAllPosts());
-    window.addEventListener('storage', handleStorage);
-    return () => window.removeEventListener('storage', handleStorage);
+    const refreshPosts = () => setAllPosts(getAllPosts());
+    refreshPosts();
+    window.addEventListener('storage', refreshPosts);
+    window.addEventListener(POSTS_UPDATED_EVENT, refreshPosts);
+    return () => {
+      window.removeEventListener('storage', refreshPosts);
+      window.removeEventListener(POSTS_UPDATED_EVENT, refreshPosts);
+    };
   }, []);
 
   useEffect(() => {
+    if (authLoading) {
+      return;
+    }
+
     if (user) {
       const savedInterestsRaw = localStorage.getItem(`userInterests_${user.uid}`);
       if (savedInterestsRaw) {
@@ -51,9 +61,11 @@ export default function HomePageContent() {
         } catch (error) {
           console.error('Error parsing saved interests from localStorage:', error);
           setUserInterests([]);
+          setFeedMode('all');
         }
       } else {
         setUserInterests([]);
+        setFeedMode('all');
       }
       setBookmarkedSlugs(getBookmarkedSlugs(user.uid));
     } else {
@@ -61,8 +73,9 @@ export default function HomePageContent() {
       setBookmarkedSlugs([]);
       setFeedMode('all');
     }
+
     setIsLoadingInterests(false);
-  }, [user]);
+  }, [user, authLoading]);
 
   const categories = useMemo(() => {
     const fromPosts = new Set(allPosts.map((post) => post.category));
@@ -70,18 +83,14 @@ export default function HomePageContent() {
   }, [allPosts]);
 
   const filteredPosts = useMemo(() => {
-    if (isLoadingInterests) {
+    if (isLoadingInterests || authLoading) {
       return [];
     }
 
     let postsToFilter = allPosts;
 
     if (feedMode === 'recommended' && user && userInterests.length > 0) {
-      postsToFilter = postsToFilter.filter((post) => {
-        const categoryMatch = userInterests.includes(post.category);
-        const tagMatch = post.tags.some((tag) => userInterests.includes(tag));
-        return categoryMatch || tagMatch;
-      });
+      postsToFilter = filterPostsByInterests(postsToFilter, userInterests);
     }
 
     if (feedMode === 'bookmarks' && user) {
@@ -103,7 +112,17 @@ export default function HomePageContent() {
     }
 
     return postsToFilter;
-  }, [allPosts, query, userInterests, user, isLoadingInterests, selectedCategory, feedMode, bookmarkedSlugs]);
+  }, [
+    allPosts,
+    query,
+    userInterests,
+    user,
+    isLoadingInterests,
+    authLoading,
+    selectedCategory,
+    feedMode,
+    bookmarkedSlugs,
+  ]);
 
   const getHomePageTitle = () => {
     if (query) return `Search Results for "${queryFromUrl}"`;
@@ -115,7 +134,7 @@ export default function HomePageContent() {
   const noInterestsSelected = user && userInterests.length === 0 && !query && feedMode !== 'bookmarks';
   const showRecommendedToggle = user && userInterests.length > 0 && !query;
 
-  if (isLoadingInterests) {
+  if (isLoadingInterests || authLoading) {
     return (
       <div className="space-y-8">
         <div className="text-center">
@@ -154,16 +173,27 @@ export default function HomePageContent() {
 
         <div className="flex flex-col gap-4 mb-8">
           {showRecommendedToggle && (
-            <div className="flex items-center justify-center gap-3 rounded-lg border border-border bg-card px-4 py-3">
-              <Label htmlFor="feed-mode" className="text-sm">
-                {feedMode === 'recommended' ? 'Showing recommendations' : 'Showing all articles'}
-              </Label>
-              <Switch
-                id="feed-mode"
-                checked={feedMode === 'recommended'}
-                onCheckedChange={(checked) => setFeedMode(checked ? 'recommended' : 'all')}
-                aria-label="Toggle between all articles and recommendations"
-              />
+            <div className="flex flex-col items-center gap-3 rounded-lg border border-border bg-card px-4 py-3">
+              <div className="flex items-center justify-center gap-3">
+                <Label htmlFor="feed-mode" className="text-sm">
+                  {feedMode === 'recommended' ? 'Showing recommendations' : 'Showing all articles'}
+                </Label>
+                <Switch
+                  id="feed-mode"
+                  checked={feedMode === 'recommended'}
+                  onCheckedChange={(checked) => setFeedMode(checked ? 'recommended' : 'all')}
+                  aria-label="Toggle between all articles and recommendations"
+                />
+              </div>
+              {feedMode === 'recommended' && (
+                <div className="flex flex-wrap justify-center gap-2">
+                  {userInterests.map((interest) => (
+                    <Badge key={interest} variant="secondary">
+                      {interest}
+                    </Badge>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 
@@ -213,7 +243,9 @@ export default function HomePageContent() {
 
           {query && (
             <div className="text-center">
-              <Badge variant="secondary">{filteredPosts.length} result{filteredPosts.length === 1 ? '' : 's'}</Badge>
+              <Badge variant="secondary">
+                {filteredPosts.length} result{filteredPosts.length === 1 ? '' : 's'}
+              </Badge>
             </div>
           )}
         </div>

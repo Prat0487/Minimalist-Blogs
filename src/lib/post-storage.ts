@@ -1,6 +1,7 @@
 import type { Post } from '@/types';
 
 const CUSTOM_POSTS_KEY = 'minimalist-blogs-custom-posts';
+export const POSTS_UPDATED_EVENT = 'minimalist-blogs-posts-updated';
 
 export function getCustomPosts(): Post[] {
   if (typeof window === 'undefined') {
@@ -38,6 +39,7 @@ export function saveCustomPost(post: Post): void {
   const existing = getCustomPosts();
   const withoutDuplicate = existing.filter((item) => item.slug !== post.slug);
   localStorage.setItem(CUSTOM_POSTS_KEY, JSON.stringify([post, ...withoutDuplicate]));
+  window.dispatchEvent(new Event(POSTS_UPDATED_EVENT));
 }
 
 export function getCustomPostBySlug(slug: string): Post | undefined {
